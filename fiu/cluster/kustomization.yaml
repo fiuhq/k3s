@@ -5,9 +5,12 @@ kind: Kustomization
 
 resources:
   # k3s's own updater: every node follows the stable channel, servers first.
-  - https://github.com/rancher/system-upgrade-controller/releases/download/v0.21.0/crd.yaml
-  - https://github.com/rancher/system-upgrade-controller/releases/download/v0.21.0/system-upgrade-controller.yaml
+  # Vendored from the v0.21.0 release assets (gh release download), so an apply never depends on the release CDN.
+  - system-upgrade-controller/crd.yaml
+  - system-upgrade-controller/system-upgrade-controller.yaml
   - upgrade-plans.yaml
+  # The tunnel connector every public site goes through.
+  - cloudflared.yaml
   # Moves a workload back to the node it prefers once that node is Ready again (failback to the Mac).
   - https://github.com/kubernetes-sigs/descheduler//kubernetes/deployment?ref=v0.37.0
 

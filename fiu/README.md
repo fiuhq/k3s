@@ -22,10 +22,27 @@ once the Mac is Ready again, so they move back.
    on a WSL guest in mirrored networking mode, the two fixes in `wsl-mirrored/`. Flannel is pinned to the interface
    that carries the tailnet address (unset, k3s would use the default-route interface), so re-run it if Windows
    renumbers the mirrored adapters.
-2. The Mac agent bootstrap lands in a follow-up once proven.
-3. `kubectl apply -k cluster/`, twice on a fresh cluster: the first apply installs the system-upgrade-controller CRD
-   and the second creates its upgrade Plans once the CRD is established. The system-upgrade-controller keeps every
-   node on the stable channel (k3s's own updater); the descheduler moves preferred workloads back to the Mac.
+2. `agent/bootstrap.sh <server ssh alias>` on the Mac. Creates the OrbStack VM, joins it to the tailnet (the first
+   run prints a login link; approve it and run again) and joins it to the cluster with the server's token, read over
+   ssh.
+3. `cluster/apply.sh`. Creates the tunnel token Secret from the secrets file, then applies `cluster/` (twice: the first
+   pass registers the system-upgrade-controller CRD before its Plans). The system-upgrade-controller keeps every node
+   on the stable channel (k3s's own updater); the descheduler moves preferred workloads back to the Mac; cloudflared
+   carries every public site.
+
+## Networking between the nodes
+
+Flannel uses WireGuard (`wireguard-native`). VXLAN does not work here: the OrbStack VM's kernel carries Ubuntu's fan
+patch, and its VXLAN device never sent an encapsulated packet to the server. On a WSL server in mirrored mode the
+WireGuard listen port sits inside `net.ipv4.ip_local_port_range` (`/etc/rancher/k3s/flannel.json`), because Windows
+drops the peer's handshake replies on any other port. Measured: a pod on the Mac then reaches CoreDNS on zenbook in
+about 70 ms.
+
+## Public sites
+
+`cloudflared.yaml` runs one Cloudflare Tunnel connector per node over HTTP/2 (QUIC never connected from either node).
+The tunnel, its routes (hostname to in-cluster service), DNS and Access are declared outside this repo; the connector
+only needs the token.
 
 ## WSL mirrored networking
 
