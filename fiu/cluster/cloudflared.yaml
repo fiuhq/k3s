@@ -14,6 +14,13 @@ metadata:
   namespace: cloudflared
 spec:
   replicas: 2
+  minReadySeconds: 10
+  # One per node leaves no room for a surge pod: replace one connector at a time; the other keeps the tunnel up.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: cloudflared
@@ -23,14 +30,14 @@ spec:
         app: cloudflared
     spec:
       affinity:
+        # Required, not preferred: a preference left both replicas on one node after the other came back. With a node
+        # down, its replica waits in Pending while the other keeps the tunnel up.
         podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    app: cloudflared
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: cloudflared
       containers:
         - name: cloudflared
           image: cloudflare/cloudflared:2026.10.7
@@ -38,6 +45,9 @@ spec:
           env:
             - name: TUNNEL_TOKEN
               valueFrom: { secretKeyRef: { name: cloudflared-token, key: token } }
+          readinessProbe:
+            httpGet: { path: /ready, port: 2000 }
+            periodSeconds: 5
           livenessProbe:
             httpGet: { path: /ready, port: 2000 }
             initialDelaySeconds: 10
