@@ -35,8 +35,9 @@ once the Mac is Ready again, so they move back.
 Flannel uses WireGuard (`wireguard-native`). VXLAN does not work here: the OrbStack VM's kernel carries Ubuntu's fan
 patch, and its VXLAN device never sent an encapsulated packet to the server. On a WSL server in mirrored mode the
 WireGuard listen port sits inside `net.ipv4.ip_local_port_range` (`/etc/rancher/k3s/flannel.json`), because Windows
-drops the peer's handshake replies on any other port. Measured: a pod on the Mac then reaches CoreDNS on zenbook in
-about 70 ms.
+drops the peer's handshake replies on any other port; `net.ipv4.ip_local_reserved_ports`
+(`/etc/sysctl.d/90-fiu-flannel-wg.conf`) keeps that port from being handed out as an ephemeral one before flannel
+binds it. Measured: a pod on the Mac then reaches CoreDNS on the server in about 70 ms.
 
 ## Public sites
 

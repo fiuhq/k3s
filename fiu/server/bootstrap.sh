@@ -26,6 +26,8 @@ if grep -qi microsoft /proc/sys/kernel/osrelease && [ "${iface#eth}" != "$iface"
   # Windows hands a reply back to the guest only on ports inside its reserved range, so WireGuard listens there.
   wg_port=$(( $(awk '{print $2}' /proc/sys/net/ipv4/ip_local_port_range) - 50 ))
   printf '{"Network":"10.42.0.0/16","EnableIPv4":true,"EnableIPv6":false,"Backend":{"Type":"wireguard","PersistentKeepaliveInterval":25,"ListenPort":%s}}\n' "$wg_port" | sudo tee /etc/rancher/k3s/flannel.json >/dev/null
+  echo "net.ipv4.ip_local_reserved_ports = $wg_port" | sudo tee /etc/sysctl.d/90-fiu-flannel-wg.conf >/dev/null
+  sudo sysctl -q -p /etc/sysctl.d/90-fiu-flannel-wg.conf
   echo "flannel-conf: /etc/rancher/k3s/flannel.json" | sudo tee -a /etc/rancher/k3s/config.yaml >/dev/null
   sudo install -m 755 "$here/wsl-mirrored/fiu-pod-masq" /usr/local/sbin/fiu-pod-masq
   sudo install -m 644 "$here/wsl-mirrored/fiu-wsl-offload.service" "$here/wsl-mirrored/fiu-pod-masq.service" /etc/systemd/system/

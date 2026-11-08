@@ -1,5 +1,5 @@
-# Cluster-wide pieces, applied with `kubectl apply -k fiu/cluster`, twice on a fresh cluster: the second apply creates
-# the upgrade Plans once the system-upgrade-controller CRD is established.
+# Cluster-wide pieces, applied with `fiu/cluster/apply.sh`: it creates the cloudflared-token Secret, then applies this
+# twice, because the second apply creates the upgrade Plans once the system-upgrade-controller CRD is established.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
