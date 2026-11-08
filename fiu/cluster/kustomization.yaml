@@ -1,4 +1,5 @@
-# Cluster-wide pieces, applied once with `kubectl apply -k fiu/cluster`.
+# Cluster-wide pieces, applied with `kubectl apply -k fiu/cluster`, twice on a fresh cluster: the second apply creates
+# the upgrade Plans once the system-upgrade-controller CRD is established.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

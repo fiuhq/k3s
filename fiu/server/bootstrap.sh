@@ -17,12 +17,10 @@ advertise-address: $ip
 flannel-iface: $iface
 tls-san:
   - $ip
-node-label:
-  - fiu.one/node=$name
 disable:
   - traefik
 YAML
-if grep -qi microsoft /proc/sys/kernel/osrelease && [ "$iface" = eth0 ]; then
+if grep -qi microsoft /proc/sys/kernel/osrelease && [ "${iface#eth}" != "$iface" ]; then
   sudo install -m 755 "$here/wsl-mirrored/fiu-pod-masq" /usr/local/sbin/fiu-pod-masq
   sudo install -m 644 "$here/wsl-mirrored/fiu-wsl-offload.service" "$here/wsl-mirrored/fiu-pod-masq.service" /etc/systemd/system/
   command -v ethtool >/dev/null || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ethtool

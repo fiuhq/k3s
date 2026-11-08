@@ -6,8 +6,7 @@ Before=k3s.service docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/sbin/ethtool -K eth1 tso off gso off
-ExecStart=-/usr/sbin/ethtool -K eth0 tso off gso off
+ExecStart=/bin/sh -c 'for d in /sys/class/net/eth*; do /usr/sbin/ethtool -K "$${d##*/}" tso off gso off; done'
 RemainAfterExit=yes
 
 [Install]
