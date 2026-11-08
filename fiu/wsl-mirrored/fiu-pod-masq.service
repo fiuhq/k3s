@@ -1,0 +1,13 @@
+[Unit]
+Description=fiu: keep k3s pod NAT ports inside the WSL mirrored range
+After=k3s.service
+PartOf=k3s.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 20
+ExecStart=/usr/local/sbin/fiu-pod-masq
+RemainAfterExit=yes
+
+[Install]
+WantedBy=k3s.service

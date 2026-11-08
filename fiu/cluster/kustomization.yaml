@@ -1,0 +1,22 @@
+# Cluster-wide pieces, applied with `kubectl apply -k fiu/cluster`, twice on a fresh cluster: the second apply creates
+# the upgrade Plans once the system-upgrade-controller CRD is established.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # k3s's own updater: every node follows the stable channel, servers first.
+  - https://github.com/rancher/system-upgrade-controller/releases/download/v0.21.0/crd.yaml
+  - https://github.com/rancher/system-upgrade-controller/releases/download/v0.21.0/system-upgrade-controller.yaml
+  - upgrade-plans.yaml
+  # Moves a workload back to the node it prefers once that node is Ready again (failback to the Mac).
+  - https://github.com/kubernetes-sigs/descheduler//kubernetes/deployment?ref=v0.37.0
+
+patches:
+  - path: descheduler-policy.yaml
+  - target:
+      kind: Deployment
+      name: descheduler
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/args/3
+        value: "1m"

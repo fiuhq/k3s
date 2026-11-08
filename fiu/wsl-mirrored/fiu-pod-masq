@@ -1,0 +1,16 @@
+#!/bin/sh
+# WSL mirrored networking hands a reply back to Linux only on ports inside Linux's reserved range
+# (net.ipv4.ip_local_port_range), on every mirrored interface. Flannel masquerades pod traffic with random source
+# ports, so most replies never arrive. These rules, first in POSTROUTING, keep pod connections inside that range
+# whichever interface they leave by.
+set -eu
+for d in /sys/class/net/eth*; do
+  ethtool -K "${d##*/}" tso off gso off || true
+done
+comment="fiu: pod ports inside the WSL mirrored range"
+range=$(tr "\t" "-" < /proc/sys/net/ipv4/ip_local_port_range)
+iptables -t nat -S POSTROUTING | grep -F -- "--comment \"$comment\"" | sed 's/^-A /-D /' | while read -r rule; do
+  eval "iptables -t nat $rule"
+done
+iptables -t nat -I POSTROUTING 1 -s 10.42.0.0/16 ! -d 10.42.0.0/16 -p tcp -m comment --comment "$comment" -j MASQUERADE --to-ports "$range"
+iptables -t nat -I POSTROUTING 2 -s 10.42.0.0/16 ! -d 10.42.0.0/16 -p udp -m comment --comment "$comment" -j MASQUERADE --to-ports "$range"
