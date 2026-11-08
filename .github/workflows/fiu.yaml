@@ -1,0 +1,18 @@
+# Checks for the fiu/ directory this fork carries (see fiu/README.md). Upstream's workflows never run for it.
+name: fiu
+on:
+  pull_request:
+    paths:
+      - "fiu/**"
+      - ".github/workflows/fiu.yaml"
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Shell scripts parse and pass shellcheck
+        run: |
+          for f in fiu/server/bootstrap.sh fiu/wsl-mirrored/fiu-pod-masq; do sh -n "$f"; done
+          shellcheck -S warning fiu/server/bootstrap.sh fiu/wsl-mirrored/fiu-pod-masq
+      - name: Cluster kustomization renders
+        run: kubectl kustomize fiu/cluster > /dev/null
