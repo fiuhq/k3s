@@ -1,0 +1,14 @@
+[Unit]
+Description=fiu: turn off TCP segmentation offload on the mirrored WSL interfaces, which truncates forwarded (container and pod) segments
+After=network-online.target
+Wants=network-online.target
+Before=k3s.service docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/ethtool -K eth1 tso off gso off
+ExecStart=-/usr/sbin/ethtool -K eth0 tso off gso off
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

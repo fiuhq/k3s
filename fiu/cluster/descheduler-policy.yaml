@@ -1,0 +1,26 @@
+# Only failback: a pod whose preferred node fits again is evicted so the scheduler puts it there. Pods with emptyDir
+# volumes are allowed, because the workloads that prefer the Mac keep their state off the node (Karakeep: R2).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: descheduler-policy-configmap
+  namespace: kube-system
+data:
+  policy.yaml: |
+    apiVersion: "descheduler/v1alpha2"
+    kind: "DeschedulerPolicy"
+    profiles:
+      - name: failback
+        pluginConfig:
+          - name: "DefaultEvictor"
+            args:
+              evictLocalStoragePods: true
+              nodeFit: true
+          - name: "RemovePodsViolatingNodeAffinity"
+            args:
+              nodeAffinityType:
+                - "preferredDuringSchedulingIgnoredDuringExecution"
+        plugins:
+          deschedule:
+            enabled:
+              - "RemovePodsViolatingNodeAffinity"
