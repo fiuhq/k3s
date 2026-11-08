@@ -4,6 +4,9 @@
 # ports, so most replies never arrive. These rules, first in POSTROUTING, keep pod connections inside that range
 # whichever interface they leave by.
 set -eu
+for d in /sys/class/net/eth*; do
+  ethtool -K "${d##*/}" tso off gso off || true
+done
 comment="fiu: pod ports inside the WSL mirrored range"
 range=$(tr "\t" "-" < /proc/sys/net/ipv4/ip_local_port_range)
 iptables -t nat -S POSTROUTING | grep -F -- "--comment \"$comment\"" | sed 's/^-A /-D /' | while read -r rule; do

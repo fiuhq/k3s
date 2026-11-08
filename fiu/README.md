@@ -32,11 +32,12 @@ once the Mac is Ready again, so they move back.
 A WSL guest in mirrored mode needs two fixes before pods reach the internet:
 
 - `fiu-wsl-offload.service`: TCP segmentation offload on the mirrored interfaces truncates forwarded segments (a
-  container's 1.5 kB TLS ClientHello arrives as 771 bytes), so it is turned off on every `eth*` interface.
+  container's 1.5 kB TLS ClientHello arrives as 771 bytes), so it is turned off on every `eth*` interface at boot.
+  `fiu-pod-masq` turns it off again on every k3s start, which covers an adapter Windows adds later.
 - `fiu-pod-masq.service`: Windows hands a reply back to the guest only on ports inside the guest's reserved range
   (`net.ipv4.ip_local_port_range`), and flannel masquerades pod traffic with random ports. Two rules first in
-  `POSTROUTING` keep pod connections inside that range on whichever interface they leave by. Bound to `k3s.service`, so they are re-applied after
-  flannel writes its own on every start.
+  `POSTROUTING` keep pod connections inside that range on whichever interface they leave by. Bound to
+  `k3s.service`, so they are re-applied after flannel writes its own on every start.
 
 A host-network listener is needed to receive traffic from other machines: mirrored mode only forwards inbound
 connections to ports a Linux socket listens on, and the service load balancer's iptables forwarding never listens.
