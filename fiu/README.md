@@ -19,7 +19,9 @@ once the Mac is Ready again, so they move back.
 ## Bootstrap
 
 1. `server/bootstrap.sh` on zenbook (in WSL). Installs k3s from the stable channel with the node's tailnet address and,
-   on a WSL guest in mirrored networking mode, the two fixes in `wsl-mirrored/`.
+   on a WSL guest in mirrored networking mode, the two fixes in `wsl-mirrored/`. Flannel is pinned to the interface
+   that carries the tailnet address (unset, k3s would use the default-route interface), so re-run it if Windows
+   renumbers the mirrored adapters.
 2. The Mac agent bootstrap lands in a follow-up once proven.
 3. `kubectl apply -k cluster/`, twice on a fresh cluster: the first apply installs the system-upgrade-controller CRD
    and the second creates its upgrade Plans once the CRD is established. The system-upgrade-controller keeps every node on the stable channel (k3s's own
