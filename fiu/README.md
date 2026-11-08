@@ -24,8 +24,8 @@ once the Mac is Ready again, so they move back.
    renumbers the mirrored adapters.
 2. The Mac agent bootstrap lands in a follow-up once proven.
 3. `kubectl apply -k cluster/`, twice on a fresh cluster: the first apply installs the system-upgrade-controller CRD
-   and the second creates its upgrade Plans once the CRD is established. The system-upgrade-controller keeps every node on the stable channel (k3s's own
-   updater); the descheduler moves preferred workloads back to the Mac.
+   and the second creates its upgrade Plans once the CRD is established. The system-upgrade-controller keeps every
+   node on the stable channel (k3s's own updater); the descheduler moves preferred workloads back to the Mac.
 
 ## WSL mirrored networking
 
