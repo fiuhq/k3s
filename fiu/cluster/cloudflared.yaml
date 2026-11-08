@@ -23,14 +23,14 @@ spec:
         app: cloudflared
     spec:
       affinity:
+        # Required, not preferred: a preference left both replicas on one node after the other came back. With a node
+        # down, its replica waits in Pending while the other keeps the tunnel up.
         podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-            - weight: 100
-              podAffinityTerm:
-                topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    app: cloudflared
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: cloudflared
       containers:
         - name: cloudflared
           image: cloudflare/cloudflared:2026.10.7
