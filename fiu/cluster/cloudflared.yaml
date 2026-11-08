@@ -14,6 +14,7 @@ metadata:
   namespace: cloudflared
 spec:
   replicas: 2
+  minReadySeconds: 10
   # One per node leaves no room for a surge pod: replace one connector at a time; the other keeps the tunnel up.
   strategy:
     type: RollingUpdate
@@ -44,6 +45,9 @@ spec:
           env:
             - name: TUNNEL_TOKEN
               valueFrom: { secretKeyRef: { name: cloudflared-token, key: token } }
+          readinessProbe:
+            httpGet: { path: /ready, port: 2000 }
+            periodSeconds: 5
           livenessProbe:
             httpGet: { path: /ready, port: 2000 }
             initialDelaySeconds: 10
