@@ -59,3 +59,14 @@ A WSL guest in mirrored mode needs two fixes before pods reach the internet:
 
 A host-network listener is needed to receive traffic from other machines: mirrored mode only forwards inbound
 connections to ports a Linux socket listens on, and the service load balancer's iptables forwarding never listens.
+
+## Over-the-air updates for the fleet's mobile builds
+
+`ota/` runs xprem, an Expo Updates protocol server, with its PostgreSQL, both pinned to the control-plane node (the
+database volume is local to it). Phones fetch update manifests and assets from it and check each update's signature
+against the certificate built into the app; CI publishes with an app-scoped token. Update bundles live in an R2
+bucket, and a nightly CronJob dumps the database to the same bucket under `backups/`. The database holds the update
+signing keys, sealed with a master key that `ota/deploy.sh` generates once and keeps in the operator's secrets file:
+with it and the latest dump, the server can be rebuilt on another node; without it, every app needs a new build.
+The vendor's hourly usage ping is turned off (`DISABLE_TELEMETRY`), so the server's address stays private.
+
