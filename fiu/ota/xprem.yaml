@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xprem
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: xprem
+  template:
+    metadata:
+      labels:
+        app: xprem
+    spec:
+      # Beside its database, which lives on the control-plane node.
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      containers:
+        - name: xprem
+          image: ghcr.io/mercuretechnologies/xprem:v3.2.7
+          envFrom:
+            - configMapRef: { name: xprem-config }
+            - secretRef: { name: xprem-secrets }
+          ports:
+            - containerPort: 3000
+          readinessProbe:
+            httpGet: { path: /hc, port: 3000 }
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xprem
+spec:
+  selector:
+    app: xprem
+  ports:
+    - port: 3000
+      targetPort: 3000
