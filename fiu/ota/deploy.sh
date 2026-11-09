@@ -8,8 +8,17 @@ here=$(cd "$(dirname "$0")" && pwd)
 secrets=${FIU_SECRETS:-$HOME/workspace/secrets.json}
 mkdir -p "$here/generated"
 python3 - "$secrets" "$here/generated" <<'PY'
-import base64, json, os, secrets as rnd, sys
+import base64, json, os, secrets as rnd, sys, tempfile
 path, out = sys.argv[1], sys.argv[2]
+def write(dst, text):
+    dst = os.path.realpath(dst)
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(dst))
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(text); f.flush(); os.fsync(f.fileno())
+        os.replace(tmp, dst)
+    except BaseException:
+        os.unlink(tmp); raise
 s = json.load(open(path))
 ota = s["ota"]
 srv = ota.setdefault("server", {})
@@ -25,7 +34,7 @@ keep("postgres_password", lambda: rnd.token_urlsafe(24))
 keep("admin_email", lambda: "fiu@ota.local")
 keep("admin_password", lambda: "Fiu-" + rnd.token_urlsafe(18) + "9a!")
 if changed:
-    fd = os.open(path, os.O_WRONLY | os.O_TRUNC); os.write(fd, (json.dumps(s, indent=2) + "\n").encode()); os.close(fd)
+    write(path, json.dumps(s, indent=2) + "\n")
 r2 = ota["r2"]
 public = {"BASE_URL": ota["public_url"], "S3_BUCKET_NAME": r2["bucket"]}
 sec = {
@@ -36,7 +45,6 @@ sec = {
     "AWS_ACCESS_KEY_ID": r2["access_key_id"], "AWS_SECRET_ACCESS_KEY": r2["secret_access_key"], "AWS_BASE_ENDPOINT": r2["endpoint"],
 }
 for name, d in (("public.env", public), ("secrets.env", sec)):
-    fd = os.open(os.path.join(out, name), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    os.write(fd, "".join(f"{a}={b}\n" for a, b in d.items()).encode()); os.close(fd)
+    write(os.path.join(out, name), "".join(f"{a}={b}\n" for a, b in d.items()))
 PY
 kubectl apply -k "$here"

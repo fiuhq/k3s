@@ -1,7 +1,7 @@
 # The fleet's over-the-air update server for its own mobile builds: xprem (an Expo Updates protocol server) with its
 # PostgreSQL, both on the always-on control-plane node. Update bundles live in R2; the database (apps, branches,
 # channels and the update signing keys, sealed with a master key kept outside the cluster) is dumped to R2 nightly.
-# deploy.sh fills the generated config.env/secrets.env from the operator's secrets file; nothing secret is committed.
+# deploy.sh fills the generated/public.env and generated/secrets.env from the operator's secrets file; nothing secret is committed.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
