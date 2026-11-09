@@ -69,4 +69,3 @@ bucket, and a nightly CronJob dumps the database to the same bucket under `backu
 signing keys, sealed with a master key that `ota/deploy.sh` generates once and keeps in the operator's secrets file:
 with it and the latest dump, the server can be rebuilt on another node; without it, every app needs a new build.
 The vendor's hourly usage ping is turned off (`DISABLE_TELEMETRY`), so the server's address stays private.
-

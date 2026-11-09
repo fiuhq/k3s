@@ -23,4 +23,3 @@ jobs:
           printf 'BASE_URL=https://example.invalid\nS3_BUCKET_NAME=bucket\n' > fiu/ota/generated/public.env
           printf 'POSTGRES_PASSWORD=x\nJWT_SECRET=x\n' > fiu/ota/generated/secrets.env
           kubectl kustomize fiu/ota > /dev/null
-
