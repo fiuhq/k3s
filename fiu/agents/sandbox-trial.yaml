@@ -59,7 +59,7 @@ spec:
               # The agent CLIs live in the home, installed by each vendor's own installer, so their own updaters keep
               # them current there (the same installs fiu runs on every fleet machine).
               gosu paseo bash -c '
-                set -eu
+                set -euo pipefail
                 [ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash
                 [ -x ~/.opencode/bin/opencode ] || curl -fsSL https://opencode.ai/v2/install | bash
                 [ -x ~/.local/bin/codex ] || npm install -g --prefix ~/.local @openai/codex
