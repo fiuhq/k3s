@@ -81,9 +81,9 @@ leaves through `git push` and the pull request, and the logins arrive as a Secre
 - `agents/Dockerfile`: the agent image, the fiuhq/paseo fork's daemon image (`docker/base/Dockerfile`, built from
   fork main) plus Claude Code, Codex, OpenCode and GitHub's CLI. The fork image's web UI bundle needs more Node heap
   than the default on a 5-CPU node: build it with `NODE_OPTIONS=--max-old-space-size=6144`.
-- `agents/sandbox-trial.yaml`: one Sandbox pinned to g14 with a 20 Gi home, its daemon reachable from the tailnet at
-  `wss://g14-fleet.tail09fc2.ts.net:8443` (`tailscale serve --bg --https=8443 http://<node tailnet ip>:30767` on the
-  VM). Its Secret `paseo-agent-logins` holds `claude-credentials.json`, `gh-token`, `git-name` and `git-email`.
+- `agents/sandbox-trial.yaml`: one Sandbox pinned to g14 with a 20 Gi home, its daemon reachable only from the
+  tailnet at `wss://g14-fleet.tail09fc2.ts.net:8443` (`tailscale serve --bg --https=8443 http://<Service ClusterIP>:6767`
+  on the VM). The daemon has no password, like the fleet's other daemons, so its Service never becomes a NodePort. Its Secret `paseo-agent-logins` holds `claude-credentials.json`, `gh-token`, `git-name` and `git-email`.
 
 Measured 2026-11-20: an agent started through the pod's daemon cloned fiuhq/k3s, committed and pushed a branch as the
 operator, and the Mac listed it over the tailnet address. Not yet carried: lending the Claude login into the Secret

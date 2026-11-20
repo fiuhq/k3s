@@ -6,6 +6,8 @@
 # With a node: a Linux machine already on the tailnet that its ssh alias reaches with passwordless sudo, such as
 # g14's fleet VM: fiu/agent/bootstrap.sh zenbook g14 g14-fleet
 set -eu
+# A node name without its ssh alias would rewrite the Mac's VM under the wrong name.
+[ $# -eq 1 ] || [ $# -eq 3 ] || { echo 'usage: bootstrap.sh <server ssh alias> [<node name> <node ssh alias>]' >&2; exit 64; }
 server=${1:?usage: bootstrap.sh <server ssh alias> [<node name> <node ssh alias>]}
 node=${2:-mac}
 alias=${3:-}

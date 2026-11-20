@@ -75,16 +75,18 @@ spec:
             secretName: paseo-agent-logins
             defaultMode: 0400
 ---
-# Reaches the daemon from the tailnet through the g14 VM's address: tailscale serve on the VM proxies
-# https://g14-fleet.tail09fc2.ts.net:8443 to this port (the VM's own Paseo keeps 6767).
+# The daemon has no password, like the fleet's other daemons, so it is reachable only from the tailnet: this Service
+# stays inside the cluster (never a NodePort, which opens a port on every interface of every node), and tailscale
+# serve on the g14 VM proxies https://g14-fleet.tail09fc2.ts.net:8443 to its cluster address (the VM's own Paseo
+# keeps 6767): tailscale serve --bg --https=8443 http://<this Service's ClusterIP>:6767
 apiVersion: v1
 kind: Service
 metadata:
   name: trial-tailnet
   namespace: paseo-agents
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     sandbox: trial
   ports:
-    - { name: paseo, port: 6767, targetPort: paseo, nodePort: 30767 }
+    - { name: paseo, port: 6767, targetPort: paseo }
