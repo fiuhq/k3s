@@ -95,8 +95,9 @@ spec:
             defaultMode: 0400
 ---
 # The daemon signs every connection in (PASEO_PASSWORD) and its Service stays inside the cluster, never a NodePort,
-# which opens a port on every interface of every node. tailscale serve on the g14 VM proxies https://g14-fleet.tail09fc2.ts.net:8443 to its cluster address (the VM's own Paseo
-# keeps 6767): tailscale serve --bg --https=8443 http://<this Service's ClusterIP>:6767
+# which opens a port on every interface of every node. tailscale serve on the g14 VM proxies
+# https://g14-fleet.tail09fc2.ts.net:8443 to its cluster address (the VM's own Paseo keeps 6767):
+#   tailscale serve --bg --https=8443 http://<this Service's ClusterIP>:6767
 apiVersion: v1
 kind: Service
 metadata:

@@ -8,8 +8,9 @@ This fork carries no change to k3s itself. `fiu/` holds how the fiu fleet runs i
 |---|---|---|
 | zenbook (WSL, Ubuntu) | server: control plane + embedded etcd | it stays on; the cluster keeps scheduling while the Mac sleeps |
 | Mac (an OrbStack Ubuntu VM, arm64) | agent, labelled `fiu.one/node=mac` | the preferred node for workloads; it sleeps and travels |
+| g14 (its fleet VM) | agent, labelled `fiu.one/node=g14` | runs the Paseo agent pods (`agents/`) |
 
-Nodes talk over the tailnet. With two nodes only one can hold etcd, so the always-on node does; a third server can
+Nodes talk over the tailnet. Only one node holds etcd, so the always-on node does; a third server can
 join later with `--server` because the first started with `cluster-init`.
 
 Workloads that should prefer the Mac use a preferred node affinity on `fiu.one/node=mac` and tolerate an unreachable
@@ -85,8 +86,9 @@ leaves through `git push` and the pull request, and the logins arrive as a Secre
 - `agents/sandbox-trial.yaml`: one Sandbox pinned to g14 with a 20 Gi home, its daemon published on the tailnet at
   `wss://g14-fleet.tail09fc2.ts.net:8443` (`tailscale serve --bg --https=8443 http://<Service ClusterIP>:6767` on the
   VM). Every pod in the cluster can reach it, including those behind the public tunnel, so the daemon requires a
-  password, and its Service never becomes a NodePort. Its Secret `paseo-agent-logins` holds `claude-credentials.json`, `gh-token`, `git-name`, `git-email` and
-  `paseo-password` (also in the operator's secrets file as `paseo_agents.password`, for the app).
+  password, and its Service never becomes a NodePort. Its Secret `paseo-agent-logins` holds `claude-credentials.json`,
+  `gh-token`, `git-name`, `git-email` and `paseo-password` (also in the operator's secrets file as
+  `paseo_agents.password`, for the app).
 
 Measured 2026-11-20: an agent started through the pod's daemon cloned fiuhq/k3s, committed and pushed a branch as the
 operator, and the Mac listed it over the tailnet address. Not yet carried: lending the Claude login into the Secret
