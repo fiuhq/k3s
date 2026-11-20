@@ -12,7 +12,6 @@ metadata:
   namespace: paseo-agents
 spec:
   operatingMode: Running
-  service: true
   volumeClaimTemplates:
     - metadata:
         name: home
@@ -40,8 +39,11 @@ spec:
             - |
               set -eu
               mkdir -p /home/paseo/.claude
-              cp /logins/claude-credentials.json /home/paseo/.claude/.credentials.json
-              chmod 600 /home/paseo/.claude/.credentials.json
+              # The Secret's login wins unless the home already holds one with a refresh token: a login Claude
+              # rotated itself must survive a restart; a lent login (no refresh token) is replaced by a newer lend.
+              creds=/home/paseo/.claude/.credentials.json
+              grep -Eq '"refreshToken"[[:space:]]*:[[:space:]]*"[^"]' "$creds" 2>/dev/null || cp /logins/claude-credentials.json "$creds"
+              chmod 600 "$creds"
               cat > /home/paseo/.gitconfig <<GIT
               [credential "https://github.com"]
               	helper = !gh auth git-credential
@@ -64,6 +66,10 @@ spec:
             - { name: PASEO_HOSTNAMES, value: "g14-fleet.tail09fc2.ts.net,localhost" }
             - name: GH_TOKEN
               valueFrom: { secretKeyRef: { name: paseo-agent-logins, key: gh-token } }
+            # Every connection signs in: any pod in the cluster can reach this one, including those behind the
+            # public tunnel. The operator's secrets file holds the same password for the app.
+            - name: PASEO_PASSWORD
+              valueFrom: { secretKeyRef: { name: paseo-agent-logins, key: paseo-password } }
           resources:
             requests: { cpu: "500m", memory: 1Gi }
             limits: { memory: 6Gi }
@@ -75,9 +81,8 @@ spec:
             secretName: paseo-agent-logins
             defaultMode: 0400
 ---
-# The daemon has no password, like the fleet's other daemons, so it is reachable only from the tailnet: this Service
-# stays inside the cluster (never a NodePort, which opens a port on every interface of every node), and tailscale
-# serve on the g14 VM proxies https://g14-fleet.tail09fc2.ts.net:8443 to its cluster address (the VM's own Paseo
+# The daemon signs every connection in (PASEO_PASSWORD) and its Service stays inside the cluster, never a NodePort,
+# which opens a port on every interface of every node. tailscale serve on the g14 VM proxies https://g14-fleet.tail09fc2.ts.net:8443 to its cluster address (the VM's own Paseo
 # keeps 6767): tailscale serve --bg --https=8443 http://<this Service's ClusterIP>:6767
 apiVersion: v1
 kind: Service
