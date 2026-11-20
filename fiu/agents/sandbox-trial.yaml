@@ -39,10 +39,14 @@ spec:
             - |
               set -eu
               mkdir -p /home/paseo/.claude
-              # The Secret's login wins unless the home already holds one with a refresh token: a login Claude
-              # rotated itself must survive a restart; a lent login (no refresh token) is replaced by a newer lend.
+              # The newer login wins: the home's when Claude refreshed it in the pod after the Secret's was written,
+              # the Secret's when it was lent again since. Compared by claudeAiOauth.expiresAt; an unreadable home copy loses.
               creds=/home/paseo/.claude/.credentials.json
-              grep -Eq '"refreshToken"[[:space:]]*:[[:space:]]*"[^"]' "$creds" 2>/dev/null || cp /logins/claude-credentials.json "$creds"
+              node -e '
+                const fs = require("node:fs");
+                const at = (f) => { try { return JSON.parse(fs.readFileSync(f, "utf8")).claudeAiOauth?.expiresAt ?? 0; } catch { return -1; } };
+                process.exit(at(process.argv[1]) > at(process.argv[2]) ? 0 : 1);
+              ' "$creds" /logins/claude-credentials.json || cp /logins/claude-credentials.json "$creds"
               chmod 600 "$creds"
               cat > /home/paseo/.gitconfig <<GIT
               [credential "https://github.com"]
@@ -52,6 +56,14 @@ spec:
               	email = $(cat /logins/git-email)
               GIT
               chown -R 1000:1000 /home/paseo
+              # The agent CLIs live in the home, installed by each vendor's own installer, so their own updaters keep
+              # them current there (the same installs fiu runs on every fleet machine).
+              gosu paseo bash -c '
+                set -eu
+                [ -x ~/.local/bin/claude ] || curl -fsSL https://claude.ai/install.sh | bash
+                [ -x ~/.opencode/bin/opencode ] || curl -fsSL https://opencode.ai/v2/install | bash
+                [ -x ~/.local/bin/codex ] || npm install -g --prefix ~/.local @openai/codex
+              '
           volumeMounts:
             - { name: home, mountPath: /home/paseo }
             - { name: logins, mountPath: /logins, readOnly: true }
@@ -62,6 +74,7 @@ spec:
           ports:
             - { name: paseo, containerPort: 6767 }
           env:
+            - { name: PATH, value: "/home/paseo/.local/bin:/home/paseo/.opencode/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" }
             - { name: PASEO_CORS_ORIGINS, value: "https://paseo.fiu.one,https://app.paseo.sh" }
             - { name: PASEO_HOSTNAMES, value: "g14-fleet.tail09fc2.ts.net,localhost" }
             - name: GH_TOKEN

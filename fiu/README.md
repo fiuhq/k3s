@@ -79,7 +79,8 @@ agent-sandbox controller (`cluster/agent-sandbox/`). Nothing lives only in the p
 leaves through `git push` and the pull request, and the logins arrive as a Secret.
 
 - `agents/Dockerfile`: the agent image, the fiuhq/paseo fork's daemon image (`docker/base/Dockerfile`, built from
-  fork main) plus Claude Code, Codex, OpenCode and GitHub's CLI. The fork image's web UI bundle needs more Node heap
+  fork main) plus GitHub's CLI. Claude Code, Codex and OpenCode install into the pod's home on first start, each by
+  its vendor's own installer, so they update themselves there. The fork image's web UI bundle needs more Node heap
   than the default on a 5-CPU node: build it with `NODE_OPTIONS=--max-old-space-size=6144`.
 - `agents/sandbox-trial.yaml`: one Sandbox pinned to g14 with a 20 Gi home, its daemon published on the tailnet at
   `wss://g14-fleet.tail09fc2.ts.net:8443` (`tailscale serve --bg --https=8443 http://<Service ClusterIP>:6767` on the
