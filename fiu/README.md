@@ -8,8 +8,9 @@ This fork carries no change to k3s itself. `fiu/` holds how the fiu fleet runs i
 |---|---|---|
 | zenbook (WSL, Ubuntu) | server: control plane + embedded etcd | it stays on; the cluster keeps scheduling while the Mac sleeps |
 | Mac (an OrbStack Ubuntu VM, arm64) | agent, labelled `fiu.one/node=mac` | the preferred node for workloads; it sleeps and travels |
+| g14 (its fleet VM) | agent, labelled `fiu.one/node=g14` | runs the Paseo agent pods (`agents/`) |
 
-Nodes talk over the tailnet. With two nodes only one can hold etcd, so the always-on node does; a third server can
+Nodes talk over the tailnet. Only one node holds etcd, so the always-on node does; a third server can
 join later with `--server` because the first started with `cluster-init`.
 
 Workloads that should prefer the Mac use a preferred node affinity on `fiu.one/node=mac` and tolerate an unreachable
@@ -24,7 +25,9 @@ once the Mac is Ready again, so they move back.
    renumbers the mirrored adapters.
 2. `agent/bootstrap.sh <server ssh alias>` on the Mac. Creates the OrbStack VM, joins it to the tailnet (the first
    run prints a login link; approve it and run again) and joins it to the cluster with the server's token, read over
-   ssh.
+   ssh. Any other Linux fleet machine already on the tailnet joins the same way by naming it and its ssh alias:
+   `agent/bootstrap.sh zenbook g14 g14-fleet` joined g14's fleet VM (2026-11-20). OrbStack must start at login
+   (`orb config set app.start_at_login true`), or the Mac's node stays NotReady after every reboot.
 3. `cluster/apply.sh`. Creates the tunnel token Secret from the secrets file, then applies `cluster/` (twice: the first
    pass registers the system-upgrade-controller CRD before its Plans). The system-upgrade-controller keeps every node
    on the stable channel (k3s's own updater); the descheduler moves preferred workloads back to the Mac; cloudflared
@@ -69,3 +72,25 @@ bucket, and a nightly CronJob dumps the database to the same bucket under `backu
 signing keys, sealed with a master key that `ota/deploy.sh` generates once and keeps in the operator's secrets file:
 with it and the latest dump, the server can be rebuilt on another node; without it, every app needs a new build.
 The vendor's hourly usage ping is turned off (`DISABLE_TELEMETRY`), so the server's address stays private.
+
+## Paseo agents in pods
+
+`agents/` runs Paseo agents the way flxbl-stack's codev runs its tasks: one stateful pod per agent, from the
+agent-sandbox controller (`cluster/agent-sandbox/`). Nothing lives only in the pod: its home is its own volume, code
+leaves through `git push` and the pull request, and the logins arrive as a Secret.
+
+- `agents/Dockerfile`: the agent image, the fiuhq/paseo fork's daemon image (`docker/base/Dockerfile`, built from
+  fork main) plus GitHub's CLI. Claude Code, Codex and OpenCode install into the pod's home on first start, each by
+  its vendor's own installer, so they update themselves there. The fork image's web UI bundle needs more Node heap
+  than the default on a 5-CPU node: build it with `NODE_OPTIONS=--max-old-space-size=6144`.
+- `agents/sandbox-trial.yaml`: one Sandbox pinned to g14 with a 20 Gi home, its daemon published on the tailnet at
+  `wss://g14-fleet.tail09fc2.ts.net:8443` (`tailscale serve --bg --https=8443 http://<Service ClusterIP>:6767` on the
+  VM). Every pod in the cluster can reach it, including those behind the public tunnel, so the daemon requires a
+  password, and its Service never becomes a NodePort. Its Secret `paseo-agent-logins` holds `claude-credentials.json`,
+  `gh-token`, `git-name`, `git-email` and `paseo-password` (also in the operator's secrets file as
+  `paseo_agents.password`, for the app).
+
+Measured 2026-11-20: an agent started through the pod's daemon cloned fiuhq/k3s, committed and pushed a branch as the
+operator, and the Mac listed it over the tailnet address. Not yet carried: lending the Claude login into the Secret
+when it rotates, no-mistakes (its gate is the operator's, on the Mac), a warm pool, and the placement job creating a
+SandboxClaim.
