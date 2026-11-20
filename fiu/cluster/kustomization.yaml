@@ -9,6 +9,9 @@ resources:
   - system-upgrade-controller/crd.yaml
   - system-upgrade-controller/system-upgrade-controller.yaml
   - upgrade-plans.yaml
+  # Sandbox, SandboxTemplate, SandboxClaim and SandboxWarmPool: one stateful pod per Paseo agent (fiu/agents/).
+  # Vendored from the kubernetes-sigs/agent-sandbox v1.0.11 release asset sandbox-with-extensions.yaml.
+  - agent-sandbox/sandbox-with-extensions.yaml
   # The tunnel connector every public site goes through.
   - cloudflared.yaml
   # Moves a workload back to the node it prefers once that node is Ready again (failback to the Mac).

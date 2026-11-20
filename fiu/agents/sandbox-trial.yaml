@@ -1,0 +1,90 @@
+# Phase 0 of running Paseo agents as pods: one Sandbox on g14 holding a Paseo daemon with its agents.
+# Its home (worktrees, Paseo history, agent sessions) is its own volume; code leaves through git push.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: paseo-agents
+---
+apiVersion: agents.x-k8s.io/v1beta1
+kind: Sandbox
+metadata:
+  name: trial
+  namespace: paseo-agents
+spec:
+  operatingMode: Running
+  service: true
+  volumeClaimTemplates:
+    - metadata:
+        name: home
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 20Gi
+  podTemplate:
+    metadata:
+      labels:
+        app: paseo-agent
+        sandbox: trial
+    spec:
+      nodeSelector:
+        fiu.one/node: g14
+      initContainers:
+        # Logins arrive as a Secret and are copied into the home, which the agent CLIs write to.
+        - name: logins
+          image: fiuhq/paseo-agent:trial
+          imagePullPolicy: Never
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -eu
+              mkdir -p /home/paseo/.claude
+              cp /logins/claude-credentials.json /home/paseo/.claude/.credentials.json
+              chmod 600 /home/paseo/.claude/.credentials.json
+              cat > /home/paseo/.gitconfig <<GIT
+              [credential "https://github.com"]
+              	helper = !gh auth git-credential
+              [user]
+              	name = $(cat /logins/git-name)
+              	email = $(cat /logins/git-email)
+              GIT
+              chown -R 1000:1000 /home/paseo
+          volumeMounts:
+            - { name: home, mountPath: /home/paseo }
+            - { name: logins, mountPath: /logins, readOnly: true }
+      containers:
+        - name: paseo
+          image: fiuhq/paseo-agent:trial
+          imagePullPolicy: Never
+          ports:
+            - { name: paseo, containerPort: 6767 }
+          env:
+            - { name: PASEO_CORS_ORIGINS, value: "https://paseo.fiu.one,https://app.paseo.sh" }
+            - { name: PASEO_HOSTNAMES, value: "g14-fleet.tail09fc2.ts.net,localhost" }
+            - name: GH_TOKEN
+              valueFrom: { secretKeyRef: { name: paseo-agent-logins, key: gh-token } }
+          resources:
+            requests: { cpu: "500m", memory: 1Gi }
+            limits: { memory: 6Gi }
+          volumeMounts:
+            - { name: home, mountPath: /home/paseo }
+      volumes:
+        - name: logins
+          secret:
+            secretName: paseo-agent-logins
+            defaultMode: 0400
+---
+# Reaches the daemon from the tailnet through the g14 VM's address: tailscale serve on the VM proxies
+# https://g14-fleet.tail09fc2.ts.net:8443 to this port (the VM's own Paseo keeps 6767).
+apiVersion: v1
+kind: Service
+metadata:
+  name: trial-tailnet
+  namespace: paseo-agents
+spec:
+  type: NodePort
+  selector:
+    sandbox: trial
+  ports:
+    - { name: paseo, port: 6767, targetPort: paseo, nodePort: 30767 }
