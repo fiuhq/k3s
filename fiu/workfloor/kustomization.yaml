@@ -10,10 +10,13 @@ namespace: workfloor
 resources:
   - namespace.yaml
   - postgres.yaml
+  - web.yaml
 
 patches:
   # The R2 account's endpoint, kept out of git.
   - path: generated/object-store-endpoint.yaml
+  # The web image deploy.sh built and imported (workfloor-web:<commit>).
+  - path: generated/web-image.yaml
 
 generatorOptions:
   disableNameSuffixHash: true
@@ -25,3 +28,6 @@ secretGenerator:
     type: kubernetes.io/basic-auth
     envs:
       - generated/hatchet-role.env
+  - name: workfloor-web
+    envs:
+      - generated/web.env

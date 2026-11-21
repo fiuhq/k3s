@@ -101,6 +101,19 @@ operator, and the Mac listed it over the tailnet address. Not yet carried: lendi
 when it rotates, no-mistakes (its gate is the operator's, on the Mac), a warm pool, and the placement job creating a
 SandboxClaim.
 
+## Workfloor's web server
+
+`workfloor/web.yaml` runs the personal Workfloor (the fiuhq/workfloor-ui fork) on zenbook beside its database, published
+as https://wfloor.fiu.one through the tunnel behind Access (fiuhq/core infra/fleet `K3S_SITES`). `workfloor/image/build.sh`
+builds its image on zenbook from the fork's main and imports it into zenbook's k3s, no registry: Font Awesome Pro comes
+from Font Awesome's registry with the operator's own token (`fontawesome.pro_npm_token`), a build secret, since flxbl's
+package cache answers only flxbl's machines. The tag names the commit and the Dockerfile with its ignore list (the
+source's own `.dockerignore` drops `video/`, which the app imports from). `workfloor/deploy.sh` then writes its settings
+(`workfloor.web` in the secrets file: session secret, credential key and test account, made once) and applies. It keeps
+files in R2 (`fiu-workfloor-files`), and its header lists flxbl's Workfloor and the Mac's Paseo daemon, reached on the
+tailnet at the Mac's Tailscale serve address (a pod host alias, since pods don't resolve tailnet names). Not here yet:
+Hatchet, the engine, the worker and the GitHub App, so no project or card runs.
+
 ## Workfloor's database
 
 `workfloor/` is a personal Workfloor, laid out like flxbl's so nothing lives only on one node. Its PostgreSQL

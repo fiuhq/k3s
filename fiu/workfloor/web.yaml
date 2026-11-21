@@ -1,0 +1,55 @@
+# The personal Workfloor's web server (the fiuhq/workfloor-ui fork, image/build.sh). It runs on zenbook beside its
+# PostgreSQL, migrates the database as it starts, keeps files in R2 (fiu-workfloor-files) and reads every setting from
+# the workfloor-web Secret deploy.sh writes. The tunnel publishes it as https://wfloor.fiu.one behind Access
+# (fiuhq/core infra/fleet K3S_SITES).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  labels: { app.kubernetes.io/name: workfloor-web }
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels: { app.kubernetes.io/name: workfloor-web }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: workfloor-web }
+    spec:
+      nodeSelector: { fiu.one/node: zenbook }
+      # The Mac's Paseo daemon, published on the tailnet by Tailscale serve; pods don't resolve tailnet names.
+      hostAliases:
+        - ip: 100.70.200.112
+          hostnames: [phieus-macbook-pro.tail09fc2.ts.net]
+      securityContext: { runAsNonRoot: true, runAsUser: 1000, fsGroup: 1000 }
+      containers:
+        - name: web
+          image: workfloor-web:IMAGE_TAG
+          imagePullPolicy: Never
+          ports: [{ name: http, containerPort: 3100 }]
+          envFrom: [{ secretRef: { name: workfloor-web } }]
+          env:
+            - name: WORKFLOOR_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: workfloor-pg-app, key: uri } }
+          readinessProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 5
+          startupProbe:
+            tcpSocket: { port: http }
+            periodSeconds: 5
+            failureThreshold: 60
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { memory: 2Gi }
+          volumeMounts: [{ name: data, mountPath: /app/data }]
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector: { app.kubernetes.io/name: workfloor-web }
+  ports: [{ name: http, port: 3100, targetPort: http }]
