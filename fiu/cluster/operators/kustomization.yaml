@@ -1,0 +1,24 @@
+# Cluster-wide operators, applied server-side by `fiu/cluster/apply.sh` before the rest: CloudNativePG's CRDs are too
+# large for the last-applied annotation a client-side apply writes. Each is vendored from its release asset.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  # Certificates for in-cluster webhooks and plugins (the Barman Cloud plugin's mTLS). v1.21.3 cert-manager.yaml.
+  - cert-manager/cert-manager.yaml
+  # PostgreSQL operator (Workfloor's database, fiu/workfloor). v1.30.2 cnpg-1.30.2.yaml.
+  - cnpg/cnpg-1.30.2.yaml
+  # CloudNativePG's backup plugin: WAL archiving and base backups to R2. v0.16.0 manifest.yaml.
+  - barman-cloud/plugin-barman-cloud-0.16.0.yaml
+
+# Every operator runs on zenbook, beside the API server: the Mac and g14 reach zenbook only through a Tailscale relay,
+# and an operator there lost its leader lease (5 s renew deadline) and restarted mid-request on 2026-11-21.
+patches:
+  - target:
+      kind: Deployment
+      namespace: "cert-manager|cnpg-system"
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value:
+          fiu.one/node: zenbook

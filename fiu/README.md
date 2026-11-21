@@ -31,7 +31,8 @@ once the Mac is Ready again, so they move back.
 3. `cluster/apply.sh`. Creates the tunnel token Secret from the secrets file, then applies `cluster/` (twice: the first
    pass registers the system-upgrade-controller CRD before its Plans). The system-upgrade-controller keeps every node
    on the stable channel (k3s's own updater); the descheduler moves preferred workloads back to the Mac; cloudflared
-   carries every public site.
+   carries every public site. It applies `cluster/operators/` first, server-side (CloudNativePG's CRDs are too large for
+   a client-side apply): cert-manager, CloudNativePG and its Barman Cloud backup plugin, all pinned to zenbook.
 
 ## Networking between the nodes
 
@@ -41,6 +42,11 @@ WireGuard listen port sits inside `net.ipv4.ip_local_port_range` (`/etc/rancher/
 drops the peer's handshake replies on any other port; `net.ipv4.ip_local_reserved_ports`
 (`/etc/sysctl.d/90-fiu-flannel-wg.conf`) keeps that port from being handed out as an ephemeral one before flannel
 binds it. Measured: a pod on the Mac then reaches CoreDNS on the server in about 70 ms.
+
+zenbook sits on another network (the operator's parents'), and neither the Mac nor g14 gets a direct Tailscale path to
+it: `tailscale ping` goes through the Singapore relay at 60-80 ms, with drops (2026-11-21). An operator on the Mac lost
+its leader lease (a 5 s renew deadline against the API server) and restarted mid-request, so every operator runs on
+zenbook (`cluster/operators/kustomization.yaml`).
 
 ## Public sites
 
@@ -94,3 +100,16 @@ Measured 2026-11-20: an agent started through the pod's daemon cloned fiuhq/k3s,
 operator, and the Mac listed it over the tailnet address. Not yet carried: lending the Claude login into the Secret
 when it rotates, no-mistakes (its gate is the operator's, on the Mac), a warm pool, and the placement job creating a
 SandboxClaim.
+
+## Workfloor's database
+
+`workfloor/` is a personal Workfloor, laid out like flxbl's so nothing lives only on one node. Its PostgreSQL
+(CloudNativePG, one instance on zenbook's disk) holds the `workfloor` and `hatchet` databases and streams every WAL
+file (at most 5 minutes apart) plus a nightly base backup, kept 7 days, to the R2 bucket `fiu-workfloor-pg` through the
+Barman Cloud plugin. `workfloor/deploy.sh` fills its Secrets and the R2 endpoint from the operator's secrets file
+(`workfloor.r2.pg`, `workfloor.postgres`); the R2 sidecar needs `AWS_REQUEST_CHECKSUM_CALCULATION=when_required`.
+
+If zenbook's disk is lost, rebuild from R2 on any node: a new `Cluster` with `bootstrap.recovery.source: origin` and an
+`externalClusters` entry `origin` naming the plugin with `barmanObjectName: workfloor-r2` and `serverName:
+workfloor-pg`. Proven 2026-11-21: a copy built on g14 from R2 alone held the last row committed before its WAL file
+was archived. A row only reaches R2 with the WAL file that holds its commit, so a test commits before `pg_switch_wal()`.
