@@ -1,0 +1,14 @@
+# This image's own ignore list (BuildKit reads <Dockerfile>.dockerignore beside a Dockerfile in place of the source's
+# .dockerignore). The source's list drops video/, which the app now imports assets from.
+node_modules
+.next*
+.git
+.agents
+.claude
+.env*
+.workfloor-data/
+artifacts
+reference
+test-results
+playwright-report
+*.tsbuildinfo
