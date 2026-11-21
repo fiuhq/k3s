@@ -36,11 +36,19 @@ if "test_password" not in web:
     web["test_password"] = rnd.token_urlsafe(24); changed = True
 if "test_email" not in web:
     raise SystemExit("set workfloor.web.test_email in the secrets file: the email the operator signs in as")
-if "test_password_hash" not in web:
-    import base64, hashlib
+import base64, hashlib, hmac
+b64 = lambda b: base64.urlsafe_b64encode(b).decode().rstrip("=")
+def hash_matches(stored, password):
+    try:
+        _, n, r, p, salt, key = stored.split("$")
+        salt = base64.urlsafe_b64decode(salt + "=" * (-len(salt) % 4))
+        got = hashlib.scrypt(password.encode(), salt=salt, n=int(n), r=int(r), p=int(p), dklen=32, maxmem=2**26)
+        return hmac.compare_digest(b64(got), key)
+    except ValueError:
+        return False
+if not hash_matches(web.get("test_password_hash", ""), web["test_password"]):
     salt = rnd.token_bytes(16)
     key = hashlib.scrypt(web["test_password"].encode(), salt=salt, n=2**15, r=8, p=1, dklen=32, maxmem=2**26)
-    b64 = lambda b: base64.urlsafe_b64encode(b).decode().rstrip("=")
     web["test_password_hash"] = f"scrypt${2**15}$8$1${b64(salt)}${b64(key)}"; changed = True
 if changed:
     write(path, json.dumps(s, indent=2) + "\n")

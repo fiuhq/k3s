@@ -15,7 +15,7 @@ resources:
 patches:
   # The R2 account's endpoint, kept out of git.
   - path: generated/object-store-endpoint.yaml
-  # The web image deploy.sh built and imported (workfloor-web:<commit>).
+  # The web image image/build.sh built and imported (workfloor-web:<commit>-<recipe>).
   - path: generated/web-image.yaml
 
 generatorOptions:

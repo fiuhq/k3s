@@ -23,8 +23,7 @@ RUN --mount=type=secret,id=fontawesome,required=true --mount=type=cache,target=/
 COPY . .
 # The source's own .npmrc names flxbl's cache; nothing installs after this, so it goes.
 RUN rm -f .npmrc && NODE_OPTIONS=--max-old-space-size=6144 npm run build \
- && cp -R .next/static .next/standalone/.next/static \
- && if [ -d public ]; then cp -R public .next/standalone/public; fi
+ && cp -R .next/static .next/standalone/.next/static
 
 FROM ${NODE_IMAGE} AS runtime
 WORKDIR /app
