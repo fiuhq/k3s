@@ -15,6 +15,8 @@ cluster-init: true
 node-ip: $ip
 advertise-address: $ip
 flannel-iface: $iface
+node-label:
+  - fiu.one/node=$name
 tls-san:
   - $ip
 disable:

@@ -6,7 +6,7 @@ This fork carries no change to k3s itself. `fiu/` holds how the fiu fleet runs i
 
 | Node | Role | Why |
 |---|---|---|
-| zenbook (WSL, Ubuntu) | server: control plane + embedded etcd | it stays on; the cluster keeps scheduling while the Mac sleeps |
+| zenbook (WSL, Ubuntu) | server: control plane + embedded etcd, labelled `fiu.one/node=zenbook` | it stays on; the cluster keeps scheduling while the Mac sleeps |
 | Mac (an OrbStack Ubuntu VM, arm64) | agent, labelled `fiu.one/node=mac` | the preferred node for workloads; it sleeps and travels |
 | g14 (its fleet VM) | agent, labelled `fiu.one/node=g14` | runs the Paseo agent pods (`agents/`) |
 

@@ -1,6 +1,6 @@
-# Workfloor's PostgreSQL (CloudNativePG, fiu/cluster/cnpg): one instance on zenbook's disk, with its WAL archived to R2
+# Workfloor's PostgreSQL (CloudNativePG, fiu/cluster/operators/cnpg): one instance on zenbook's disk, with its WAL archived to R2
 # as each file fills (or every 5 minutes at most) and a base backup every night, kept 7 days, through the Barman Cloud
-# plugin (fiu/cluster/barman-cloud). It holds two databases: workfloor (the app's records) and hatchet (its job queue).
+# plugin (fiu/cluster/operators/barman-cloud). It holds two databases: workfloor (the app's records) and hatchet (its job queue).
 apiVersion: barmancloud.cnpg.io/v1
 kind: ObjectStore
 metadata:

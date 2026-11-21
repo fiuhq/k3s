@@ -2,10 +2,10 @@
 # Applies the personal Workfloor from the Mac. Writes generated/ (gitignored) from the operator's secrets file: the R2
 # key for fiu-workfloor-pg (workfloor.r2.pg), its endpoint, and the hatchet login's password, made once and kept there
 # so a restored database still accepts it.
-#   usage: fiu/workfloor/deploy.sh   (KUBECONFIG must point at the cluster; FIU_SECRETS defaults to the workspace's file)
+#   usage: fiu/workfloor/deploy.sh   (KUBECONFIG must point at the cluster)
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
-secrets=${FIU_SECRETS:-$HOME/workspace/secrets.json}
+secrets=$HOME/workspace/secrets.json
 mkdir -p "$here/generated"
 python3 - "$secrets" "$here/generated" <<'PY'
 import json, os, secrets as rnd, sys, tempfile
