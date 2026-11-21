@@ -111,5 +111,7 @@ Barman Cloud plugin. `workfloor/deploy.sh` fills its Secrets and the R2 endpoint
 
 If zenbook's disk is lost, rebuild from R2 on any node: a new `Cluster` with `bootstrap.recovery.source: origin` and an
 `externalClusters` entry `origin` naming the plugin with `barmanObjectName: workfloor-r2` and `serverName:
-workfloor-pg`. Proven 2026-11-21: a copy built on g14 from R2 alone held the last row committed before its WAL file
+workfloor-pg`. The rebuilt cluster keeps archiving to R2 only under a new name: give its plugin entry a `serverName`
+parameter such as `workfloor-pg-2`, because barman-cloud refuses to archive into a folder that already holds the old
+timeline's WAL. Proven 2026-11-21: a copy built on g14 from R2 alone held the last row committed before its WAL file
 was archived. A row only reaches R2 with the WAL file that holds its commit, so a test commits before `pg_switch_wal()`.
