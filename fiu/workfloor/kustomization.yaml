@@ -1,0 +1,27 @@
+# A personal Workfloor on the fleet. Like flxbl's, nothing it needs lives only on one node: its PostgreSQL runs on
+# zenbook (always on) and streams every WAL file and a nightly base backup to the R2 bucket fiu-workfloor-pg, so a lost
+# node is a restore from R2, not a loss. deploy.sh fills generated/ from the operator's secrets file; nothing secret
+# (nor the R2 account's address) is committed.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: workfloor
+
+resources:
+  - namespace.yaml
+  - postgres.yaml
+
+patches:
+  # The R2 account's endpoint, kept out of git.
+  - path: generated/object-store-endpoint.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+secretGenerator:
+  - name: workfloor-pg-r2
+    envs:
+      - generated/r2.env
+  - name: workfloor-pg-hatchet
+    type: kubernetes.io/basic-auth
+    envs:
+      - generated/hatchet-role.env

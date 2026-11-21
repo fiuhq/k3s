@@ -1,0 +1,86 @@
+# Workfloor's PostgreSQL (CloudNativePG, fiu/cluster/operators/cnpg): one instance on zenbook's disk, with its WAL archived to R2
+# as each file fills (or every 5 minutes at most) and a base backup every night, kept 7 days, through the Barman Cloud
+# plugin (fiu/cluster/operators/barman-cloud). It holds two databases: workfloor (the app's records) and hatchet (its job queue).
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: workfloor-r2
+spec:
+  retentionPolicy: 7d
+  configuration:
+    destinationPath: s3://fiu-workfloor-pg/
+    endpointURL: set-by-deploy
+    s3Credentials:
+      accessKeyId:
+        name: workfloor-pg-r2
+        key: ACCESS_KEY_ID
+      secretAccessKey:
+        name: workfloor-pg-r2
+        key: ACCESS_SECRET_KEY
+    wal:
+      compression: zstd
+    data:
+      compression: zstd
+  instanceSidecarConfiguration:
+    # R2 refuses the integrity checksums newer AWS SDKs add to every request by default.
+    env:
+      - name: AWS_REQUEST_CHECKSUM_CALCULATION
+        value: when_required
+      - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+        value: when_required
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: workfloor-pg
+spec:
+  instances: 1
+  storage:
+    storageClass: local-path
+    size: 20Gi
+  affinity:
+    nodeSelector:
+      fiu.one/node: zenbook
+  postgresql:
+    parameters:
+      archive_timeout: 5min
+  managed:
+    roles:
+      - name: hatchet
+        login: true
+        passwordSecret:
+          name: workfloor-pg-hatchet
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: workfloor-r2
+  bootstrap:
+    initdb:
+      database: workfloor
+      owner: workfloor
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Database
+metadata:
+  name: workfloor-pg-hatchet
+spec:
+  cluster:
+    name: workfloor-pg
+  name: hatchet
+  owner: hatchet
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: workfloor-pg-nightly
+spec:
+  cluster:
+    name: workfloor-pg
+  # Seconds first: 02:30 UTC, 09:30 at the parents'.
+  schedule: "0 30 2 * * *"
+  backupOwnerReference: self
+  immediate: true
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
